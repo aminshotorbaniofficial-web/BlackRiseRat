@@ -23,7 +23,7 @@ import android.util.Base64
 class AppTools {
     companion object {
         // === INJECT MARKER - DO NOT REMOVE OR MODIFY THIS LINE ===
-        private const val DEFAULT_DATA = "eyJob3N0IjoiaHR0cDovLzkxLjEwNy4xMzQuNTg6ODk5OS8iLCJzb2NrZXQiOiJ3c3M6Ly85MS4xMDcuMTM0LjU4Ojg5OTkvIiwid2ViVmlldyI6Imh0dHBzOi8vZ29vZ2xlLmNvbS8ifQ=="
+        private const val DEFAULT_DATA = ""
         // === INJECT MARKER END ===
 
         private val DEFAULT_APP_DATA = AppData(
